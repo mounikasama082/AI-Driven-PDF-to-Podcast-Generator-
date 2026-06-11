@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PodcastAI — Documents to Podcasts</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<style>
+:root{
+ --bg:#f8f7f4;--bg2:#ffffff;--bg3:#f1f0ec;--bg4:#e9e7e2;
+ --tx:#18171a;--tx2:#67655f;--tx3:#aeaca7;
+ --bd:rgba(0,0,0,.07);--bd2:rgba(0,0,0,.13);
+ --ac:#1a6ef5;--ac2:#1457d0;--acbg:#e8f0fe;
+ --gn:#16a34a;--gnbg:#f0fdf4;--rd:#dc2626;--rdbg:#fef2f2;
+ --amb:#d97706;--ambbg:#fffbeb;
+ --sb:268px;--top:52px;--r:10px;--r2:14px;
+ --sh:0 1px 3px rgba(0,0,0,.06);--sh2:0 8px 24px rgba(0,0,0,.1);
+}
+[data-theme=dark]{
+ --bg:#0f0f0e;--bg2:#1a1a19;--bg3:#222220;--bg4:#2c2c29;
+ --tx:#ede9e3;--tx2:#8a8782;--tx3:#57554f;
+ --bd:rgba(255,255,255,.06);--bd2:rgba(255,255,255,.11);
+ --acbg:#162040;--gnbg:#0c2818;--rdbg:#270f0f;--ambbg:#251900;
+ --sh:0 1px 3px rgba(0,0,0,.3);--sh2:0 8px 24px rgba(0,0,0,.45);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+button,input,textarea,select{font-family:inherit}
+button{cursor:pointer;border:none;outline:none}
+input,textarea,select{outline:none}
+a{color:inherit;text-decoration:none}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+
+#app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.page{display:none;flex:1;overflow:hidden;flex-direction:column}
+.page.active{display:flex}
+.scroll{overflow-y:auto;flex:1}
+
+.top{height:var(--top);background:var(--bg2);border-bottom:1px solid var(--bd);
+ display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;z-index:50}
+.logo{font-family:'Syne',sans-serif;font-size:19px;font-weight:800;cursor:pointer;
+ display:flex;align-items:center;gap:6px;letter-spacing:-.4px}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--ac);flex-shrink:0}
+.tnav{display:flex;gap:2px;margin-left:4px}
+.tnav button{padding:5px 10px;border-radius:7px;font-size:13px;font-weight:500;
+ color:var(--tx2);background:none;border:none;cursor:pointer;transition:.12s}
+.tnav button:hover,.tnav button.on{color:var(--tx);background:var(--bg3)}
+.tright{margin-left:auto;display:flex;align-items:center;gap:6px}
+.ibtn{width:34px;height:34px;border-radius:8px;background:none;border:1px solid var(--bd);
+ color:var(--tx2);display:flex;align-items:center;justify-content:center;
+ font-size:14px;cursor:pointer;transition:.12s;flex-shrink:0}
+.ibtn:hover{background:var(--bg3);color:var(--tx)}
+.chip{padding:5px 12px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;
+ transition:.12s;border:1px solid var(--bd2);background:none;color:var(--tx2)}
+.chip:hover{background:var(--bg3);color:var(--tx)}
+.chip.fill{background:var(--ac);color:#fff;border-color:var(--ac)}
+.chip.fill:hover{background:var(--ac2)}
+.ava{width:30px;height:30px;border-radius:50%;background:var(--ac);color:#fff;
+ font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;
+ cursor:pointer;flex-shrink:0;font-family:'Syne',sans-serif}
+
+#toasts{position:fixed;top:12px;right:12px;z-index:9999;display:flex;flex-direction:column;gap:7px;pointer-events:none}
+.t{pointer-events:auto;display:flex;align-items:flex-start;gap:9px;padding:11px 14px;
+ border-radius:var(--r);background:var(--bg2);border:1px solid var(--bd);
+ box-shadow:var(--sh2);font-size:13px;font-weight:500;max-width:320px;line-height:1.45;
+ animation:tin .2s ease}
+.t.ok{border-color:rgba(22,163,74,.3);background:var(--gnbg);color:var(--gn)}
+.t.err{border-color:rgba(220,38,38,.3);background:var(--rdbg);color:var(--rd)}
+.t.inf{border-color:rgba(26,110,245,.3);background:var(--acbg);color:var(--ac)}
+.t.warn{border-color:rgba(217,119,6,.3);background:var(--ambbg);color:var(--amb)}
+.t-close{margin-left:auto;cursor:pointer;opacity:.6;flex-shrink:0;line-height:1}
+@keyframes tin{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+@keyframes tout{to{opacity:0;transform:translateX(12px)}}
+
+/* ═ HOME ═ */
+#pg-home{background:var(--bg)}
+.hw{max-width:1040px;margin:0 auto;padding:0 24px}
+.hero{padding:68px 0 50px;text-align:center}
+.eyebrow{display:inline-flex;align-items:center;gap:7px;padding:5px 13px;border-radius:20px;
+ border:1px solid var(--bd2);font-size:12px;font-weight:500;color:var(--tx2);margin-bottom:26px}
+.eyebrow span{width:6px;height:6px;border-radius:50%;background:var(--ac);flex-shrink:0}
+.hero h1{font-family:'Syne',sans-serif;font-size:clamp(36px,5.5vw,64px);font-weight:800;
+ line-height:1.05;letter-spacing:-1px;margin-bottom:18px}
+.hero h1 em{font-style:normal;color:var(--ac)}
+.hero p{font-size:17px;color:var(--tx2);max-width:450px;margin:0 auto 32px;
+ font-weight:300;line-height:1.75}
+.hcta{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.btn{padding:10px 24px;border-radius:var(--r);font-size:14px;font-weight:500;
+ cursor:pointer;transition:.15s;border:1px solid var(--bd2)}
+.btn.solid{background:var(--ac);color:#fff;border-color:var(--ac)}
+.btn.solid:hover{background:var(--ac2)}
+.btn.ghost{background:none;color:var(--tx)}
+.btn.ghost:hover{background:var(--bg3)}
+.btn:disabled{opacity:.4;cursor:not-allowed !important}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:13px;padding-bottom:68px}
+.fc{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);padding:18px;transition:.18s}
+.fc:hover{border-color:var(--bd2);box-shadow:var(--sh2);transform:translateY(-2px)}
+.fc-ico{width:36px;height:36px;border-radius:9px;background:var(--acbg);color:var(--ac);
+ font-size:18px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.fc h3{font-size:14px;font-weight:600;margin-bottom:5px;font-family:'Syne',sans-serif}
+.fc p{font-size:13px;color:var(--tx2);line-height:1.6}
+.how{background:var(--bg2);border-top:1px solid var(--bd);padding:52px 0}
+.stitle{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;text-align:center;
+ margin-bottom:6px;letter-spacing:-.5px}
+.ssub{font-size:15px;color:var(--tx2);text-align:center;margin-bottom:36px}
+.flow{display:flex;justify-content:center;flex-wrap:wrap;max-width:660px;margin:0 auto}
+.fst{flex:1;min-width:120px;text-align:center;padding:0 10px;position:relative}
+.fst:not(:last-child)::after{content:'→';position:absolute;right:-6px;top:15px;color:var(--tx3);font-size:16px}
+.fnum{width:36px;height:36px;border-radius:50%;background:var(--ac);color:#fff;font-weight:700;
+ font-size:13px;display:flex;align-items:center;justify-content:center;
+ margin:0 auto 10px;font-family:'Syne',sans-serif}
+.flbl{font-size:13px;font-weight:600}
+.fdesc{font-size:12px;color:var(--tx2);margin-top:3px}
+
+/* ═ DASHBOARD ═ */
+#pg-dash{flex-direction:column}
+.dshell{display:flex;flex:1;overflow:hidden}
+
+/* server status banner */
+.srv-banner{padding:8px 20px;display:flex;align-items:center;gap:9px;font-size:13px;
+ flex-shrink:0;border-bottom:1px solid var(--bd)}
+.srv-banner.ok{background:var(--gnbg);color:var(--gn);border-color:rgba(22,163,74,.2)}
+.srv-banner.fail{background:var(--rdbg);color:var(--rd);border-color:rgba(220,38,38,.2)}
+.srv-banner.pend{background:var(--bg3);color:var(--tx3);border-color:var(--bd)}
+.srv-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+
+.sb{width:var(--sb);flex-shrink:0;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column}
+.sbtop{padding:12px 12px 8px}
+.newbtn{width:100%;padding:9px 12px;border-radius:9px;background:var(--ac);color:#fff;
+ font-size:13px;font-weight:500;display:flex;align-items:center;gap:7px;
+ cursor:pointer;border:none;transition:.15s}
+.newbtn:hover{background:var(--ac2)}
+.sbsrch{margin-top:8px;position:relative}
+.sbsrch input{width:100%;padding:7px 10px 7px 30px;background:var(--bg3);
+ border:1px solid var(--bd);border-radius:8px;font-size:13px;color:var(--tx)}
+.sbsrch input::placeholder{color:var(--tx3)}
+.sbsrch::before{content:'⌕';position:absolute;left:9px;top:50%;transform:translateY(-50%);
+ color:var(--tx3);font-size:14px;pointer-events:none}
+.sbsec{padding:8px 14px 3px;font-size:10px;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:.7px}
+.hlist{flex:1;overflow-y:auto;padding:0 6px 8px}
+.hi{display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:8px;cursor:pointer;transition:.1s;position:relative}
+.hi:hover{background:var(--bg3)}
+.hi.on{background:var(--bg4)}
+.hi-ico{font-size:14px;color:var(--tx3);flex-shrink:0}
+.hi-info{flex:1;min-width:0}
+.hi-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hi-date{font-size:11px;color:var(--tx3)}
+.hi-del{opacity:0;position:absolute;right:7px;background:none;border:none;color:var(--tx3);font-size:12px;padding:2px 5px;border-radius:4px;cursor:pointer}
+.hi:hover .hi-del{opacity:1}
+.hi-del:hover{background:var(--rdbg);color:var(--rd)}
+.hi-ren{opacity:0;position:absolute;right:30px;background:none;border:none;color:var(--tx3);font-size:12px;padding:2px 5px;border-radius:4px;cursor:pointer}
+.hi:hover .hi-ren{opacity:1}
+.hi-ren:hover{background:var(--acbg);color:var(--ac)}
+.sbempty{padding:22px 14px;text-align:center;color:var(--tx3);font-size:13px;line-height:1.6}
+.sbfoot{padding:10px;border-top:1px solid var(--bd);text-align:center;font-size:12px;color:var(--tx3)}
+.sbbkdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:199}
+.sbbkdrop.on{display:block}
+
+.mpanel{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.scroll{overflow-y:auto;flex:1}
+.ct{padding:20px;max-width:760px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);overflow:hidden}
+.chead{padding:12px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:9px}
+.chead h3{font-size:14px;font-weight:600;flex:1;font-family:'Syne',sans-serif}
+.cbody{padding:18px}
+
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.fc2{width:100%;padding:9px 12px;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;font-size:13px;color:var(--tx);transition:.15s}
+.fc2:focus{border-color:var(--ac);background:var(--bg2)}
+.fc2::placeholder{color:var(--tx3)}
+select.fc2{cursor:pointer}
+textarea.fc2{resize:vertical;min-height:100px}
+
+.dz{border:1.5px dashed var(--bd2);border-radius:var(--r);padding:26px 20px;
+ text-align:center;cursor:pointer;transition:.18s;background:var(--bg3)}
+.dz:hover,.dz.ov{border-color:var(--ac);background:var(--acbg)}
+.dz-ico{font-size:28px;margin-bottom:10px;opacity:.65}
+.dz-t{font-size:14px;font-weight:500}
+.dz-h{font-size:12px;color:var(--tx3);margin-top:4px}
+.fpill{display:flex;align-items:center;gap:9px;padding:9px 13px;background:var(--bg3);border-radius:8px;margin-top:10px}
+.fpn{font-size:13px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fps{font-size:12px;color:var(--tx3)}
+.fpill button{background:none;border:none;color:var(--tx3);cursor:pointer;font-size:15px;border-radius:4px}
+.fpill button:hover{color:var(--rd)}
+
+.vsec{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.voice-row{display:flex;gap:7px;align-items:flex-end}
+.voice-row select{flex:1}
+.prev-btn{padding:8px 10px;border-radius:8px;background:none;border:1px solid var(--bd2);
+ color:var(--tx2);font-size:12px;cursor:pointer;white-space:nowrap;transition:.12s;flex-shrink:0}
+.prev-btn:hover{background:var(--bg3);color:var(--tx)}
+.prev-btn:disabled{opacity:.4;cursor:not-allowed}
+.same-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.same-row label{font-size:13px;color:var(--tx2);cursor:pointer}
+.same-row input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--ac)}
+.voice-preview-bar{background:var(--bg3);border-radius:8px;padding:8px 12px;margin-top:8px;display:none}
+.voice-preview-bar audio{width:100%;accent-color:var(--ac)}
+
+.gbtn{width:100%;padding:12px;border-radius:var(--r);background:var(--ac);color:#fff;
+ font-size:15px;font-weight:500;border:none;cursor:pointer;transition:.15s;
+ display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px}
+.gbtn:hover:not(:disabled){background:var(--ac2)}
+.gbtn:disabled{opacity:.4;cursor:not-allowed}
+
+.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);
+ border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.srow{display:flex;margin-bottom:14px}
+.si{flex:1;text-align:center;padding:7px 4px;border-bottom:2px solid var(--bd);
+ font-size:12px;color:var(--tx3);font-weight:500;transition:.2s}
+.si.on{color:var(--ac);border-color:var(--ac);font-weight:600}
+.si.dn{color:var(--gn);border-color:var(--gn)}
+.pbar{height:4px;background:var(--bg3);border-radius:2px;margin-bottom:10px;overflow:hidden}
+.pfill{height:100%;background:linear-gradient(90deg,var(--ac),#7c3aed);border-radius:2px;transition:width .6s ease;width:0%}
+.plbl{font-size:13px;color:var(--tx2);text-align:center}
+
+.rtabs{display:flex;background:var(--bg3);border-bottom:1px solid var(--bd)}
+.rtab{padding:10px 18px;font-size:13px;font-weight:500;color:var(--tx2);cursor:pointer;
+ border-bottom:2px solid transparent;margin-bottom:-1px;transition:.13s}
+.rtab.on{color:var(--ac);border-color:var(--ac);background:var(--bg2)}
+.rpane{display:none;padding:16px}
+.rpane.on{display:block}
+.sbox{max-height:320px;overflow-y:auto;font-size:13px;line-height:1.9;background:var(--bg3);border-radius:8px;padding:14px}
+.sl{margin-bottom:2px}
+.spk1{color:#1a6ef5;font-weight:600;font-family:'Syne',sans-serif;font-size:14px}
+.spk2{color:#16a34a;font-weight:600;font-family:'Syne',sans-serif;font-size:14px}
+audio{width:100%;accent-color:var(--ac);margin:8px 0}
+.wv{width:100%;height:52px;border-radius:7px;background:var(--bg3);margin-top:6px}
+.arow{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+.abtn{padding:7px 13px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;
+ border:1px solid var(--bd);background:var(--bg3);color:var(--tx2);
+ display:flex;align-items:center;gap:5px;transition:.13s}
+.abtn:hover{background:var(--bg4);color:var(--tx)}
+.abtn.ac{background:var(--ac);color:#fff;border-color:var(--ac)}
+.abtn.ac:hover{background:var(--ac2)}
+.lang-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;
+ border-radius:12px;font-size:11px;font-weight:600;background:var(--acbg);
+ color:var(--ac);margin-left:auto}
+
+/* ═ CONTENT PAGES ═ */
+.cp{max-width:720px;margin:0 auto;padding:48px 24px;flex:1}
+.cp h1{font-family:'Syne',sans-serif;font-size:34px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px}
+.cp .lead{font-size:16px;color:var(--tx2);margin-bottom:34px;font-weight:300;line-height:1.75}
+.csec{margin-bottom:30px}
+.csec h2{font-size:16px;font-weight:600;margin-bottom:11px;padding-bottom:8px;
+ border-bottom:1px solid var(--bd);font-family:'Syne',sans-serif}
+.csec p{font-size:14px;color:var(--tx2);line-height:1.8;margin-bottom:8px}
+.ferr{font-size:12px;color:var(--rd);margin-top:3px}
+.submit-btn{width:100%;padding:11px;border-radius:var(--r);background:var(--ac);color:#fff;
+ font-size:14px;font-weight:500;border:none;cursor:pointer;transition:.15s}
+.submit-btn:hover{background:var(--ac2)}
+.faq{border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;margin-bottom:8px}
+.fq{padding:13px 16px;font-size:14px;font-weight:500;cursor:pointer;
+ display:flex;justify-content:space-between;align-items:center;background:var(--bg2)}
+.fq:hover{background:var(--bg3)}
+.fchev{color:var(--tx3);transition:.2s;font-size:11px}
+.faq.op .fchev{transform:rotate(180deg)}
+.fa{display:none;padding:0 16px 13px;font-size:14px;color:var(--tx2);line-height:1.7;background:var(--bg2)}
+.faq.op .fa{display:block}
+.gstep{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--bd)}
+.gstep:last-child{border:none}
+.gn2{width:26px;height:26px;border-radius:50%;background:var(--ac);color:#fff;font-size:12px;
+ font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.gc h4{font-size:14px;font-weight:500;margin-bottom:3px}
+.gc p{font-size:13px;color:var(--tx2);line-height:1.6}
+
+/* ═ AUTH ═ */
+.awrap{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg)}
+.acard{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);
+ padding:32px;width:100%;max-width:400px;box-shadow:var(--sh2)}
+.alogo{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;text-align:center;margin-bottom:4px}
+.asub{font-size:14px;color:var(--tx2);text-align:center;margin-bottom:26px}
+.alr{text-align:center;font-size:13px;color:var(--tx2);margin-top:14px}
+.alr a{color:var(--ac);cursor:pointer}
+.alr a:hover{text-decoration:underline}
+
+/* ═ SHARE ═ */
+#pg-share{background:var(--bg)}
+.sphero{text-align:center;padding:40px 24px 28px}
+.sphero h1{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:-.4px;margin-bottom:6px}
+.sphero p{font-size:14px;color:var(--tx2)}
+.spcont{max-width:700px;margin:0 auto;padding:0 20px 40px}
+
+/* ═ MODALS ═ */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;
+ align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px)}
+.modal{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);
+ padding:24px;width:100%;max-width:440px;box-shadow:var(--sh2);position:relative}
+.modal h3{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;margin-bottom:6px}
+.modal p{font-size:14px;color:var(--tx2);margin-bottom:14px;line-height:1.6}
+.mcls{position:absolute;top:14px;right:14px;background:none;border:none;font-size:17px;
+ color:var(--tx2);cursor:pointer;padding:2px;border-radius:5px}
+.mcls:hover{background:var(--bg3)}
+.shrow{display:flex;gap:7px}
+.shrow input{flex:1;padding:8px 12px;background:var(--bg3);border:1px solid var(--bd);
+ border-radius:8px;font-size:13px;color:var(--tx)}
+.mfoot{display:flex;justify-content:flex-end;gap:7px;margin-top:14px}
+.reninp{width:100%;padding:9px 12px;background:var(--bg3);border:1px solid var(--bd);
+ border-radius:8px;font-size:14px;color:var(--tx);margin-bottom:12px}
+
+/* offline overlay */
+.offline-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:12px;padding:60px 20px;text-align:center;flex:1}
+.offline-ico{font-size:40px;opacity:.4}
+.offline-wrap h3{font-family:'Syne',sans-serif;font-size:20px;font-weight:700}
+.offline-wrap p{font-size:14px;color:var(--tx2);max-width:340px;line-height:1.7}
+.offline-wrap button{padding:9px 22px;border-radius:var(--r);background:var(--ac);color:#fff;
+ border:none;font-size:14px;font-weight:500;cursor:pointer;transition:.15s}
+.offline-wrap button:hover{background:var(--ac2)}
+
+@media(max-width:700px){
+ .tnav{display:none}
+ .sb{display:none;position:fixed;left:0;top:0;bottom:0;z-index:200;box-shadow:var(--sh2)}
+ .sb.op{display:flex}
+ .vsec{grid-template-columns:1fr}
+ .fst:not(:last-child)::after{display:none}
+ .fgrid{grid-template-columns:1fr 1fr}
+ .mmenu{display:flex !important}
+}
+.mmenu{display:none}
+code{font-size:12px;background:var(--bg3);padding:1px 5px;border-radius:4px;font-family:monospace}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="toasts"></div>
+
+<!-- TOPBAR -->
+<nav class="top">
+ <div class="logo" onclick="go('home')"><span class="logo-dot"></span>PodcastAI</div>
+ <div class="tnav">
+ <button onclick="go('home')">Home</button>
+ <button onclick="go('dash')">Dashboard</button>
+ <button onclick="go('about')">About</button>
+ <button onclick="go('help')">Help</button>
+ <button onclick="go('contact')">Contact</button>
+ </div>
+ <div class="tright">
+ <button class="ibtn mmenu" id="mmenu" onclick="toggleSb()" style="display:none">☰</button>
+ <button class="ibtn" id="thbtn" onclick="toggleTheme()" title="Toggle theme">☀</button>
+ <div id="abtns" style="display:flex;gap:6px">
+ <button class="chip" onclick="go('login')">Sign in</button>
+ <button class="chip fill" onclick="go('signup')">Sign up</button>
+ </div>
+ <div id="uarea" style="display:none;align-items:center;gap:7px">
+ <div class="ava" id="uava">?</div>
+ <button class="chip" onclick="signout()">Sign out</button>
+ </div>
+ </div>
+</nav>
+
+<!-- ═ HOME ═ -->
+<div class="page scroll" id="pg-home">
+ <div class="hw">
+ <div class="hero">
+ <div class="eyebrow"><span></span>AI-Powered Document to Podcast</div>
+ <h1>Turn any document into<br/>an <em>engaging podcast</em></h1>
+ <p>Upload a PDF, DOCX, or TXT. Get a fully voiced two-host conversation — natural, clear, and ready to share.</p>
+ <div class="hcta">
+ <button class="btn solid" onclick="go('dash')">Start generating →</button>
+ <button class="btn ghost" onclick="go('help')">How it works</button>
+ </div>
+ </div>
+ <div class="fgrid">
+ <div class="fc"><div class="fc-ico">🎤</div><h3>Custom voices</h3><p>Choose from 20+ real voices. Preview before generating.</p></div>
+ <div class="fc"><div class="fc-ico">🌍</div><h3>15 languages</h3><p>Generate podcasts in Hindi, Telugu, Spanish, French and 11 more.</p></div>
+ <div class="fc"><div class="fc-ico">⚡</div><h3>Lightning fast</h3><p>Handles large, dense documents quickly and accurately.</p></div>
+ <div class="fc"><div class="fc-ico">🧹</div><h3>Smart filtering</h3><p>Automatically removes headers, footers, and filler — clean content only.</p></div>
+ <div class="fc"><div class="fc-ico">🔗</div><h3>Share links</h3><p>Public shareable URLs for every podcast — no login to listen.</p></div>
+ <div class="fc"><div class="fc-ico">🌙</div><h3>Dark mode</h3><p>Easy on the eyes. Toggle any time.</p></div>
+ </div>
+ </div>
+ <div class="how">
+ <div class="hw">
+ <div class="stitle">How it works</div>
+ <div class="ssub">Four steps from document to broadcast</div>
+ <div class="flow">
+ <div class="fst"><div class="fnum">1</div><div class="flbl">Upload</div><div class="fdesc"></div></div>
+ <div class="fst"><div class="fnum">2</div><div class="flbl">Extract</div><div class="fdesc"></div></div>
+ <div class="fst"><div class="fnum">3</div><div class="flbl">Script</div><div class="fdesc"></div></div>
+ <div class="fst"><div class="fnum">4</div><div class="flbl">Voice</div><div class="fdesc"></div></div>
+ </div>
+ </div>
+ </div>
+</div>
+
+<!-- ═ DASHBOARD ═ -->
+<div class="page" id="pg-dash">
+ <div class="sbbkdrop" id="sbbkdrop" onclick="toggleSb()"></div>
+
+ <!-- server status banner -->
+ <div class="srv-banner pend" id="srv-banner">
+ <div class="srv-dot"></div>
+ <span id="srv-txt">Checking connection…</span>
+ </div>
+
+ <div class="dshell">
+ <aside class="sb" id="sidebar">
+ <div class="sbtop">
+ <button class="newbtn" onclick="newSess()">✦ New podcast</button>
+ <div class="sbsrch"><input type="text" id="sbsrch" placeholder="Search…" oninput="filterH(this.value)"/></div>
+ </div>
+ <div class="sbsec">History</div>
+ <div class="hlist" id="hlist"></div>
+ <div class="sbfoot"><span id="hcnt">0</span> podcasts</div>
+ </aside>
+
+ <div class="mpanel">
+ <!-- offline state -->
+ <div id="offline-view" class="offline-wrap" style="display:none">
+ <div class="offline-ico">📡</div>
+ <h3>Server not connected</h3>
+ <p>PodcastAI needs the server to be running. Please start the server and refresh, or try again.</p>
+ <button onclick="retryConn()">Retry connection</button>
+ </div>
+
+ <!-- main content (shown when connected) -->
+ <div class="scroll" id="main-view">
+ <div class="ct">
+
+ <!-- UPLOAD CARD -->
+ <div class="card" id="ucard">
+ <div class="chead"><span>📄</span><h3>Upload document</h3></div>
+ <div class="cbody">
+ <div class="dz" id="dz" onclick="document.getElementById('finp').click()">
+ <div class="dz-ico">⬆</div>
+ <div class="dz-t">Click to upload or drag &amp; drop</div>
+ <div class="dz-h">PDF, TXT, DOCX, PPTX — max 10 MB</div>
+ </div>
+ <div class="fpill" id="fpill" style="display:none">
+ <span>📄</span><span class="fpn" id="fpname"></span>
+ <span class="fps" id="fpsize"></span>
+ <button onclick="clearFile()" title="Remove">✕</button>
+ </div>
+ <input type="file" id="finp" accept=".pdf,.txt,.docx,.pptx" style="display:none" onchange="onFile(this)"/>
+ </div>
+ </div>
+
+ <!-- VOICE & LANGUAGE -->
+ <div class="card" id="vcard">
+ <div class="chead">
+ <span>🎙</span><h3>Voice &amp; language</h3>
+ <span id="voices-loading" style="font-size:12px;color:var(--tx3)"></span>
+ </div>
+ <div class="cbody">
+ <div class="vsec">
+ <div class="fg">
+ <label>Speaker 1 voice</label>
+ <div class="voice-row">
+ <select class="fc2" id="voice1" onchange="updateVoiceNames()"><option value="">Loading voices…</option></select>
+ <button class="prev-btn" id="prev1" onclick="previewVoice(1)" disabled>▶ Preview</button>
+ </div>
+ </div>
+ <div class="fg">
+ <label>Speaker 2 voice</label>
+ <div class="voice-row">
+ <select class="fc2" id="voice2" onchange="updateVoiceNames()"><option value="">Loading voices…</option></select>
+ <button class="prev-btn" id="prev2" onclick="previewVoice(2)" disabled>▶ Preview</button>
+ </div>
+ </div>
+ </div>
+ <div class="same-row">
+ <input type="checkbox" id="same-voice" onchange="toggleSameVoice()"/>
+ <label for="same-voice">Use same voice for both speakers</label>
+ </div>
+ <div class="voice-preview-bar" id="vpbar">
+ <audio id="vpaud" controls></audio>
+ </div>
+ <div class="fg" style="margin-top:12px;margin-bottom:0">
+ <label>Language</label>
+ <select class="fc2" id="lang-sel"><option value="en">English</option></select>
+ </div>
+ </div>
+ </div>
+
+ <!-- GENERATE -->
+ <button class="gbtn" id="gbtn" onclick="generate()" disabled>
+ <span id="gbtn-ico">✦</span>
+ <span id="gbtn-txt">Generate podcast</span>
+ </button>
+
+ <!-- PROGRESS -->
+ <div class="card" id="pcard" style="display:none">
+ <div class="chead"><span>⚙</span><h3>Generating…</h3></div>
+ <div class="cbody">
+ <div class="srow">
+ <div class="si" id="s1">Extract</div>
+ <div class="si" id="s2">Filter</div>
+ <div class="si" id="s3">Script</div>
+ <div class="si" id="s4">Audio</div>
+ </div>
+ <div class="pbar"><div class="pfill" id="pfill"></div></div>
+ <div class="plbl" id="plbl">Preparing…</div>
+ </div>
+ </div>
+
+ <!-- RESULT -->
+ <div class="card" id="rcard" style="display:none">
+ <div class="rtabs">
+ <div class="rtab on" onclick="rtab('script',this)">Script</div>
+ <div class="rtab" onclick="rtab('audio',this)">Audio</div>
+ </div>
+ <div class="rpane on" id="pn-s">
+ <div class="sbox" id="sout"></div>
+ <div class="arow">
+ <button class="abtn" onclick="dlScript()">📄 Script</button>
+ <button class="abtn ac" onclick="openShare()">🔗 Share</button>
+ <div class="lang-badge" id="lang-badge"></div>
+ </div>
+ </div>
+ <div class="rpane" id="pn-a">
+ <audio controls id="ael"></audio>
+ <canvas class="wv" id="wv" height="52"></canvas>
+ <div class="arow">
+ <button class="abtn" onclick="dlAudio()">⬇ WAV</button>
+ <button class="abtn ac" onclick="openShare()">🔗 Share</button>
+ </div>
+ </div>
+ </div>
+
+ </div>
+ </div>
+ </div>
+ </div>
+</div>
+
+<!-- ═ ABOUT ═ -->
+<div class="page scroll" id="pg-about">
+ <div class="cp">
+ <h1>About PodcastAI</h1>
+ <p class="lead">Transform any document into a natural, engaging two-host podcast conversation — ready to listen or share in minutes.</p>
+ <div class="csec">
+ <h2>What is PodcastAI?</h2>
+ <p>PodcastAI takes your documents — PDFs, reports, essays, presentations, or plain text — and turns them into a fully voiced podcast. Two AI hosts discuss the content naturally, covering the key ideas without you having to read a single word.</p>
+ <p>It's perfect for catching up on research papers, sharing knowledge with your team, or making dense content accessible and enjoyable.</p>
+ </div>
+ <div class="csec">
+ <h2>What can it handle?</h2>
+ <p>You can upload PDF files, Word documents, plain text files, and PowerPoint presentations. Files up to 10 MB are supported. The system is built to handle long, dense documents and automatically filters out irrelevant content like headers, page numbers, and boilerplate text.</p>
+ </div>
+ <div class="csec">
+ <h2>Voices and languages</h2>
+ <p>You can choose from over 20 different voices, previewing each one before generating. Podcasts can be generated in 15 languages including English, Hindi, Telugu, Spanish, French, German, Japanese, and more. Speaker names appear in the script so you always know who is talking.</p>
+ </div>
+ <div class="csec">
+ <h2>Your podcasts, your data</h2>
+ <p>Every podcast you generate is saved to your account and accessible from the history sidebar. You can rename, revisit, or delete any podcast at any time. You can also generate a shareable link — anyone with the link can listen, no account required.</p>
+ </div>
+ </div>
+</div>
+
+<!-- ═ CONTACT ═ -->
+<div class="page scroll" id="pg-contact">
+ <div class="cp" style="max-width:560px">
+ <h1>Contact</h1>
+ <p class="lead">Have a question, found a bug, or want to suggest a feature? We'd love to hear from you.</p>
+ <div class="card"><div class="cbody" style="padding:24px">
+ <div class="fg"><label>Name</label><input class="fc2" id="cn" placeholder="Your name"/></div>
+ <div class="fg"><label>Email</label><input class="fc2" id="ce" type="email" placeholder="you@example.com"/></div>
+ <div class="fg"><label>Message</label><textarea class="fc2" id="cm" placeholder="Your message…"></textarea></div>
+ <button class="submit-btn" onclick="sendContact()">Send message</button>
+ </div></div>
+ </div>
+</div>
+
+<!-- ═ HELP ═ -->
+<div class="page scroll" id="pg-help">
+ <div class="cp">
+ <h1>Help &amp; FAQ</h1>
+ <p class="lead">Everything you need to get started and make the most of PodcastAI.</p>
+
+ <div class="csec">
+ <h2>How to use PodcastAI</h2>
+ <div>
+ <div class="gstep">
+ <div class="gn2">1</div>
+ <div class="gc">
+ <h4>Create an account</h4>
+ <p>Sign up with your name, email, and a password. Your podcast history is saved to your account so you can revisit or share anything you've made.</p>
+ </div>
+ </div>
+ <div class="gstep">
+ <div class="gn2">2</div>
+ <div class="gc">
+ <h4>Go to the Dashboard</h4>
+ <p>Once signed in, head to the Dashboard. A status indicator at the top will confirm the service is ready. If it shows "Server not connected", please wait a moment and click Retry.</p>
+ </div>
+ </div>
+ <div class="gstep">
+ <div class="gn2">3</div>
+ <div class="gc">
+ <h4>Pick your voices and language</h4>
+ <p>Choose a voice for each of the two podcast hosts. Click the Preview button to hear a short sample before deciding. Then select your language — English is selected by default.</p>
+ </div>
+ </div>
+ <div class="gstep">
+ <div class="gn2">4</div>
+ <div class="gc">
+ <h4>Upload your document</h4>
+ <p>Drag and drop a PDF, Word document, plain text file, or PowerPoint presentation onto the upload area. Files up to 10 MB are supported.</p>
+ </div>
+ </div>
+ <div class="gstep">
+ <div class="gn2">5</div>
+ <div class="gc">
+ <h4>Generate and listen</h4>
+ <p>Click Generate podcast. The progress bar will track the stages. Depending on the length of your document, this may take a few minutes. When done, you can read the script, play the audio, and download or share both.</p>
+ </div>
+ </div>
+ </div>
+ </div>
+
+ <div class="csec">
+ <h2>Frequently asked questions</h2>
+ <div>
+ <div class="faq">
+ <div class="fq" onclick="faq(this)"><span>What file types can I upload?</span><span class="fchev">▾</span></div>
+ <div class="fa">You can upload PDF (.pdf), Word (.docx), plain text (.txt), and PowerPoint (.pptx) files. The maximum file size is 10 MB. Scanned image-only PDFs may not extract well unless the service has OCR enabled.</div>
+ </div>
+ <div class="faq">
+ <div class="fq" onclick="faq(this)"><span>How long does generation take?</span><span class="fchev">▾</span></div>
+ <div class="fa">Short documents (1–5 pages) typically take 1–3 minutes. Longer or denser documents can take 5–10 minutes. You will see a progress bar while the podcast is being created. Please keep the tab open during generation.</div>
+ </div>
+ <div class="faq">
+ <div class="fq" onclick="faq(this)"><span>Can I choose different voices for each speaker?</span><span class="fchev">▾</span></div>
+ <div class="fa">Yes. You can select any voice for Speaker 1 and a different one for Speaker 2. Use the Preview buttons to hear a sample. If you prefer, tick "Use same voice for both speakers" to keep it consistent.</div>
+ </div>
+ <div class="faq">
+ <div class="fq" onclick="faq(this)"><span>Which languages are supported?</span><span class="fchev">▾</span></div>
+ <div class="fa">PodcastAI supports 15 languages: English, Hindi, Telugu, Spanish, French, German, Chinese, Arabic, Portuguese, Japanese, Korean, Italian, Russian, Bengali, and Tamil. The podcast script is automatically translated into your chosen language before audio is generated.</div>
+ </div>
+ <div class="faq">
+ <div class="fq" onclick="faq(this)"><span>Can I share my podcast with someone?</span><span class="fchev">▾</span></div>
+ <div class="fa">Yes. After generation, click the Share button to get a public link. Anyone with the link can listen to the podcast and read the script — they do not need an account.</div>
+ </div>
+ <div class="faq">
+ <div class="fq" onclick="faq(this)"><span>Where are my podcasts saved?</span><span class="fchev">▾</span></div>
+ <div class="fa">All podcasts are saved to your account and listed in the sidebar on the Dashboard. You can click any item to reload it, rename it, or delete it. History is tied to your account, so it will be there next time you sign in.</div>
+ </div>
+ <div class="faq">
+ <div class="fq" onclick="faq(this)"><span>Can I download the audio?</span><span class="fchev">▾</span></div>
+ <div class="fa">Yes. On the Audio tab of any generated podcast, click the Download button to save the audio as a WAV file. You can also download the script as a text file from the Script tab.</div>
+ </div>
+ <div class="faq">
+ <div class="fq" onclick="faq(this)"><span>The service shows "Server not connected" — what do I do?</span><span class="fchev">▾</span></div>
+ <div class="fa">This means the backend service is not reachable. If you are running PodcastAI yourself, make sure the server is started. Then click the Retry connection button on the Dashboard. If you are using a hosted version and the problem persists, please contact us.</div>
+ </div>
+ <div class="faq">
+ <div class="fq" onclick="faq(this)"><span>Voices didn't load — what should I do?</span><span class="fchev">▾</span></div>
+ <div class="fa">Voices load automatically when the service connects. If the voice dropdowns are empty, try clicking Retry connection on the Dashboard. If the problem persists, the voice service may be temporarily unavailable — try again in a few minutes.</div>
+ </div>
+ <div class="faq">
+ <div class="fq" onclick="faq(this)"><span>The audio generated but it is silent — why?</span><span class="fchev">▾</span></div>
+ <div class="fa">This is rare but can happen if the voice service had a temporary issue during generation. Try generating again. If it keeps happening, try switching to a different voice from the dropdown and generating again.</div>
+ </div>
+ <div class="faq">
+ <div class="fq" onclick="faq(this)"><span>The translation sounds unnatural — can I fix it?</span><span class="fchev">▾</span></div>
+ <div class="fa">Translation quality depends on the language and the complexity of the document. For best results with non-English languages, keep your source document in simple, clear language. Some technical terms may not translate perfectly, but conversational content usually sounds natural.</div>
+ </div>
+ <div class="faq">
+ <div class="fq" onclick="faq(this)"><span>Is there a limit on how many podcasts I can make?</span><span class="fchev">▾</span></div>
+ <div class="fa">There is no hard limit on the number of podcasts you can generate. However, very long or complex documents take more time and resources, so please allow generation to fully complete before starting another.</div>
+ </div>
+ </div>
+ </div>
+ </div>
+</div>
+
+<!-- ═ LOGIN ═ -->
+<div class="page" id="pg-login">
+ <div class="awrap"><div class="acard">
+ <div class="alogo">PodcastAI</div>
+ <div class="asub">Sign in to your account</div>
+ <div class="fg"><label>Email</label><input class="fc2" id="le" type="email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')doLogin()"/><div class="ferr" id="lee"></div></div>
+ <div class="fg"><label>Password</label><input class="fc2" id="lp" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/><div class="ferr" id="lpe"></div></div>
+ <button class="submit-btn" onclick="doLogin()">Sign in</button>
+ <div class="alr">No account? <a onclick="go('signup')">Sign up</a></div>
+ </div></div>
+</div>
+
+<!-- ═ SIGNUP ═ -->
+<div class="page" id="pg-signup">
+ <div class="awrap"><div class="acard">
+ <div class="alogo">PodcastAI</div>
+ <div class="asub">Create your account</div>
+ <div class="fg"><label>Name</label><input class="fc2" id="sn" placeholder="Your name"/><div class="ferr" id="sne"></div></div>
+ <div class="fg"><label>Email</label><input class="fc2" id="se" type="email" placeholder="you@example.com"/><div class="ferr" id="see"></div></div>
+ <div class="fg"><label>Password</label><input class="fc2" id="sp" type="password" placeholder="Min 8 characters"/><div class="ferr" id="spe"></div></div>
+ <button class="submit-btn" onclick="doSignup()">Create account</button>
+ <div class="alr">Have an account? <a onclick="go('login')">Sign in</a></div>
+ </div></div>
+</div>
+
+<!-- ═ SHARE PAGE ═ -->
+<div class="page scroll" id="pg-share">
+ <div class="sphero"><h1 id="sptitle">Shared Podcast</h1><p id="spmeta"></p></div>
+ <div class="spcont">
+ <div class="card">
+ <div class="rtabs">
+ <div class="rtab on" onclick="stab('s',this)">Script</div>
+ <div class="rtab" onclick="stab('a',this)">Audio</div>
+ </div>
+ <div class="rpane on" id="spn-s"><div class="sbox" id="spscript"></div></div>
+ <div class="rpane" id="spn-a">
+ <audio controls id="spaud"></audio>
+ <div class="arow" style="margin-top:8px"><button class="abtn" onclick="go('home')">Try PodcastAI →</button></div>
+ </div>
+ </div>
+ </div>
+</div>
+
+<!-- SHARE MODAL -->
+<div class="ov" id="shmod" style="display:none" onclick="closeMod(event,'shmod')">
+ <div class="modal">
+ <button class="mcls" onclick="closeMod(null,'shmod')">✕</button>
+ <h3>Share podcast</h3>
+ <p>Anyone with this link can listen — no login required.</p>
+ <div class="shrow">
+ <input type="text" id="shurl" readonly/>
+ <button class="abtn ac" onclick="copyShare()">Copy</button>
+ </div>
+ <div class="mfoot"><button class="abtn" onclick="closeMod(null,'shmod')">Done</button></div>
+ </div>
+</div>
+
+<!-- RENAME MODAL -->
+<div class="ov" id="renmod" style="display:none" onclick="closeMod(event,'renmod')">
+ <div class="modal">
+ <button class="mcls" onclick="closeMod(null,'renmod')">✕</button>
+ <h3>Rename podcast</h3>
+ <input class="reninp" id="reninp" placeholder="New title…" onkeydown="if(event.key==='Enter')doRename()"/>
+ <div class="mfoot">
+ <button class="abtn" onclick="closeMod(null,'renmod')">Cancel</button>
+ <button class="abtn ac" onclick="doRename()">Save</button>
+ </div>
+ </div>
+</div>
+
+<script>
+'use strict';
+const S = {
+ user:null, hist:[], file:null,
+ audio64:null, script:null, shareId:null, podId:null,
+ gen:false, stimer:null, search:'', renId:null,
+ voices:[], langs:{en:'English'}, sp1:'Alex', sp2:'Jordan',
+ connected:false,
+};
+try{ const u=localStorage.getItem('pai_u'); if(u) S.user=JSON.parse(u); }catch(_){}
+
+const API = ()=>'http://localhost:5000';
+const TOK = ()=>S.user?.token||'';
+const SLEEP = ms=>new Promise(r=>setTimeout(r,ms));
+
+/* ── NAV ── */
+function go(pg){
+ document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+ document.querySelectorAll('.tnav button').forEach(b=>b.classList.remove('on'));
+ const p=document.getElementById('pg-'+pg);
+ if(p) p.classList.add('active');
+ const b=document.querySelector('.tnav button[onclick*="\''+pg+'\'"]');
+ if(b) b.classList.add('on');
+ const mmenu=document.getElementById('mmenu');
+ if(mmenu) mmenu.style.display=(pg==='dash')?'flex':'none';
+ updateAuth();
+ if(pg==='dash'){ renderHist(); checkConn(); }
+ window.scrollTo(0,0);
+}
+
+function checkHash(){
+ const h=window.location.hash||'';
+ if(h.startsWith('#/share/')){ loadSharePg(h.slice(8)); return; }
+ const raw=h.replace(/^#\/?/,'');
+ const map={'':'home','home':'home','dash':'dash','about':'about','help':'help','contact':'contact','login':'login','signup':'signup'};
+ go(map[raw]||'home');
+}
+window.addEventListener('hashchange',checkHash);
+
+/* ── THEME ── */
+(()=>{
+ const t=localStorage.getItem('pai_th')||'light';
+ document.documentElement.setAttribute('data-theme',t);
+ const b=document.getElementById('thbtn');
+ if(b) b.textContent=t==='dark'?'☽':'☀';
+})();
+function toggleTheme(){
+ const c=document.documentElement.getAttribute('data-theme');
+ const n=c==='dark'?'light':'dark';
+ document.documentElement.setAttribute('data-theme',n);
+ localStorage.setItem('pai_th',n);
+ document.getElementById('thbtn').textContent=n==='dark'?'☽':'☀';
+}
+
+/* ── TOAST ── */
+function toast(msg,type,dur){
+ type=type||'inf'; dur=(dur===undefined)?4000:dur;
+ const ic={ok:'✓',err:'✕',inf:'ℹ',warn:'⚠'};
+ const el=document.createElement('div');
+ el.className='t '+type;
+ el.innerHTML='<span>'+ic[type]+'</span><span style="flex:1">'+msg+'</span><span class="t-close" onclick="this.closest(\'.t\').remove()">✕</span>';
+ document.getElementById('toasts').appendChild(el);
+ if(dur>0) setTimeout(function(){ el.style.animation='tout .2s ease forwards'; setTimeout(function(){el.remove();},220); },dur);
+ return el;
+}
+
+/* ── AUTH UI ── */
+function updateAuth(){
+ const ab=document.getElementById('abtns');
+ const ua=document.getElementById('uarea');
+ const av=document.getElementById('uava');
+ if(S.user){
+ ab.style.display='none'; ua.style.display='flex';
+ av.textContent=(S.user.name||S.user.email||'?')[0].toUpperCase();
+ } else { ab.style.display='flex'; ua.style.display='none'; }
+}
+const isEmail=function(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); };
+
+async function doLogin(){
+ const email=document.getElementById('le').value.trim();
+ const pass=document.getElementById('lp').value;
+ ['lee','lpe'].forEach(function(id){document.getElementById(id).textContent='';});
+ let ok=true;
+ if(!isEmail(email)){document.getElementById('lee').textContent='Valid email required.';ok=false;}
+ if(pass.length<6){document.getElementById('lpe').textContent='Password too short.';ok=false;}
+ if(!ok) return;
+ try{
+ const r=await fetch(API()+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pass})});
+ const d=await r.json();
+ if(!r.ok){toast(d.error||'Login failed.','err');return;}
+ S.user=Object.assign({},d.user,{token:d.token});
+ localStorage.setItem('pai_u',JSON.stringify(S.user));
+ toast('Welcome back, '+S.user.name+'!','ok');
+ go('dash'); await fetchHist();
+ }catch(e){toast('Cannot reach server.','err');}
+}
+
+async function doSignup(){
+ const name=document.getElementById('sn').value.trim();
+ const email=document.getElementById('se').value.trim();
+ const pass=document.getElementById('sp').value;
+ ['sne','see','spe'].forEach(function(id){document.getElementById(id).textContent='';});
+ let ok=true;
+ if(!name){document.getElementById('sne').textContent='Name required.';ok=false;}
+ if(!isEmail(email)){document.getElementById('see').textContent='Valid email required.';ok=false;}
+ if(pass.length<8){document.getElementById('spe').textContent='Min 8 characters.';ok=false;}
+ if(!ok) return;
+ try{
+ const r=await fetch(API()+'/api/auth/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,email:email,password:pass})});
+ const d=await r.json();
+ if(!r.ok){toast(d.error||'Signup failed.','err');return;}
+ S.user=Object.assign({},d.user,{token:d.token});
+ localStorage.setItem('pai_u',JSON.stringify(S.user));
+ toast('Welcome, '+S.user.name+'!','ok');
+ go('dash');
+ }catch(e){toast('Cannot reach server.','err');}
+}
+
+function signout(){
+ S.user=null; S.hist=[]; S.connected=false;
+ localStorage.removeItem('pai_u');
+ updateAuth(); go('home'); toast('Signed out.','inf');
+}
+
+/* ── CONNECTION ── */
+function setBanner(state, msg){
+ const b=document.getElementById('srv-banner');
+ const t=document.getElementById('srv-txt');
+ if(!b) return;
+ b.className='srv-banner '+state;
+ t.textContent=msg;
+}
+
+async function checkConn(){
+ setBanner('pend','Checking connection…');
+ showMainView(false);
+ try{
+ const r=await fetch(API()+'/api/status',{signal:AbortSignal.timeout(5000)});
+ const d=await r.json();
+ S.connected=true;
+ setBanner('ok','Connected · '+d.voice_count+' voices · '+d.languages+' languages');
+ showMainView(true);
+ await loadVoices();
+ if(S.user) fetchHist();
+ }catch(e){
+ S.connected=false;
+ setBanner('fail','Server not connected');
+ showMainView(false);
+ }
+}
+
+function showMainView(connected){
+ const mv=document.getElementById('main-view');
+ const ov=document.getElementById('offline-view');
+ if(!mv||!ov) return;
+ if(connected){
+ mv.style.display=''; ov.style.display='none';
+ } else {
+ mv.style.display='none'; ov.style.display='flex';
+ }
+}
+
+function retryConn(){ checkConn(); }
+
+/* ── VOICES ── */
+async function loadVoices(){
+ const ll=document.getElementById('voices-loading');
+ if(ll) ll.textContent='Loading voices…';
+ try{
+ const r=await fetch(API()+'/api/voices',{signal:AbortSignal.timeout(10000)});
+ if(!r.ok) throw new Error('HTTP '+r.status);
+ const d=await r.json();
+ S.voices=d.voices||[];
+ S.langs=d.languages||{en:'English'};
+ populateVoiceDropdowns();
+ populateLangDropdown();
+ if(ll) ll.textContent=S.voices.length+' voices';
+ }catch(e){
+ if(ll) ll.textContent='Voice load failed';
+ toast('Could not load voices','warn');
+ }
+}
+
+function populateVoiceDropdowns(){
+ const v1=document.getElementById('voice1');
+ const v2=document.getElementById('voice2');
+ if(!v1||!v2) return;
+ function makeOpts(voices){
+ const males=voices.filter(function(v){return v.gender==='male';});
+ const females=voices.filter(function(v){return v.gender==='female';});
+ const others=voices.filter(function(v){return v.gender!=='male'&&v.gender!=='female';});
+ let html='';
+ if(males.length){
+ html+='<optgroup label="Male">';
+ males.forEach(function(v){html+='<option value="'+v.voice_id+'">'+v.name+'</option>';});
+ html+='</optgroup>';
+ }
+ if(females.length){
+ html+='<optgroup label="Female">';
+ females.forEach(function(v){html+='<option value="'+v.voice_id+'">'+v.name+'</option>';});
+ html+='</optgroup>';
+ }
+ if(others.length){
+ html+='<optgroup label="Other">';
+ others.forEach(function(v){html+='<option value="'+v.voice_id+'">'+v.name+'</option>';});
+ html+='</optgroup>';
+ }
+ return html;
+ }
+ const opts=makeOpts(S.voices);
+ v1.innerHTML=opts; v2.innerHTML=opts;
+ const males=S.voices.filter(function(v){return v.gender==='male';});
+ const females=S.voices.filter(function(v){return v.gender==='female';});
+ if(males.length) v1.value=males[0].voice_id;
+ if(females.length) v2.value=females[0].voice_id;
+ document.getElementById('prev1').disabled=false;
+ document.getElementById('prev2').disabled=false;
+ document.getElementById('gbtn').disabled=!S.file;
+ updateVoiceNames();
+}
+
+function populateLangDropdown(){
+ const sel=document.getElementById('lang-sel');
+ sel.innerHTML='';
+ Object.keys(S.langs).forEach(function(code){
+ sel.innerHTML+='<option value="'+code+'">'+S.langs[code]+'</option>';
+ });
+}
+
+function updateVoiceNames(){
+ const v1id=document.getElementById('voice1')?document.getElementById('voice1').value:'';
+ const v2id=document.getElementById('voice2')?document.getElementById('voice2').value:'';
+ S.sp1=(S.voices.find(function(v){return v.voice_id===v1id;})||{name:'Alex'}).name;
+ S.sp2=(S.voices.find(function(v){return v.voice_id===v2id;})||{name:'Jordan'}).name;
+}
+
+function toggleSameVoice(){
+ const same=document.getElementById('same-voice').checked;
+ const v2=document.getElementById('voice2');
+ const p2=document.getElementById('prev2');
+ if(same){
+ v2.value=document.getElementById('voice1').value;
+ v2.disabled=true; p2.disabled=true;
+ } else {
+ v2.disabled=false; p2.disabled=!S.voices.length;
+ }
+}
+
+async function previewVoice(num){
+ const selId=num===1?'voice1':'voice2';
+ const btnId=num===1?'prev1':'prev2';
+ const vid=document.getElementById(selId)?document.getElementById(selId).value:'';
+ if(!vid){toast('Select a voice first.','warn');return;}
+ const btn=document.getElementById(btnId);
+ btn.disabled=true; btn.textContent='Loading…';
+ try{
+ const r=await fetch(API()+'/api/voices/'+vid+'/preview');
+ const d=await r.json();
+ if(!d.ok){toast('Preview failed: '+d.error,'err');return;}
+ const bar=document.getElementById('vpbar');
+ const aud=document.getElementById('vpaud');
+ const bytes=Uint8Array.from(atob(d.audio),function(c){return c.charCodeAt(0);});
+ aud.src=URL.createObjectURL(new Blob([bytes],{type:'audio/wav'}));
+ bar.style.display='block';
+ aud.play().catch(function(){});
+ toast('Previewing: '+d.name,'inf',2500);
+ }catch(e){
+ toast('Preview failed.','err');
+ }finally{
+ btn.disabled=false; btn.textContent='▶ Preview';
+ }
+}
+
+/* ── FILE ── */
+var dzEl=document.getElementById('dz');
+if(dzEl){
+ dzEl.addEventListener('dragover',function(e){e.preventDefault();dzEl.classList.add('ov');});
+ dzEl.addEventListener('dragleave',function(){dzEl.classList.remove('ov');});
+ dzEl.addEventListener('drop',function(e){
+ e.preventDefault(); dzEl.classList.remove('ov');
+ var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];
+ if(f) setFile(f);
+ });
+}
+function onFile(inp){ if(inp.files&&inp.files[0]) setFile(inp.files[0]); }
+function setFile(f){
+ var MB=f.size/1024/1024;
+ if(MB>10){toast('File exceeds 10 MB.','err');return;}
+ var ext=f.name.split('.').pop().toLowerCase();
+ if(['pdf','txt','docx','pptx'].indexOf(ext)===-1){toast('Use PDF, TXT, DOCX, or PPTX.','err');return;}
+ S.file=f;
+ document.getElementById('fpname').textContent=f.name;
+ document.getElementById('fpsize').textContent=MB.toFixed(1)+' MB';
+ document.getElementById('fpill').style.display='flex';
+ if(S.voices.length) document.getElementById('gbtn').disabled=false;
+ else toast('Voices are still loading — please wait.','warn');
+}
+function clearFile(){
+ S.file=null; document.getElementById('finp').value='';
+ document.getElementById('fpill').style.display='none';
+ document.getElementById('gbtn').disabled=true;
+}
+
+/* ── PROGRESS ── */
+var SMSG=['Extracting text…','Filtering content…','Writing script…','Generating audio…'];
+var SPCT=[8,30,58,82];
+function setStep(n){
+ ['s1','s2','s3','s4'].forEach(function(id,i){
+ var el=document.getElementById(id); if(!el) return;
+ el.className='si'+(i+1<n?' dn':i+1===n?' on':'');
+ });
+ var pct=n<=4?SPCT[n-1]:100;
+ document.getElementById('pfill').style.width=pct+'%';
+ document.getElementById('plbl').textContent=n<=4?SMSG[n-1]:'Finalising…';
+}
+
+/* ── GENERATE ── */
+async function generate(){
+ if(!S.user){toast('Sign in to generate podcasts.','inf');go('login');return;}
+ if(!S.file){toast('Upload a file first.','err');return;}
+ if(!S.voices.length){toast('Voices are still loading — please wait.','warn');return;}
+ if(S.gen) return;
+
+ var voice1=document.getElementById('voice1')?document.getElementById('voice1').value:'';
+ var voice2=document.getElementById('voice2')?document.getElementById('voice2').value:'';
+ var lang=document.getElementById('lang-sel')?document.getElementById('lang-sel').value:'en';
+ var same=document.getElementById('same-voice').checked;
+
+ if(!voice1||!voice2){toast('Select voices first.','warn');return;}
+
+ S.gen=true; S.audio64=null; S.script=null;
+ document.getElementById('gbtn').disabled=true;
+ document.getElementById('gbtn-ico').innerHTML='<div class="spinner"></div>';
+ document.getElementById('gbtn-txt').textContent='Generating…';
+ document.getElementById('rcard').style.display='none';
+ document.getElementById('pcard').style.display='block';
+
+ var step=1; setStep(1);
+ S.stimer=setInterval(function(){if(step<4){step++;setStep(step);}},10000);
+
+ var fd=new FormData();
+ fd.append('file',S.file);
+ fd.append('voice1',voice1);
+ fd.append('voice2',same?voice1:voice2);
+ fd.append('language',lang);
+ fd.append('same_voice',same?'true':'false');
+ fd.append('speaker1',S.sp1);
+ fd.append('speaker2',S.sp2);
+
+ try{
+ var r=await fetch(API()+'/api/generate-podcast',{
+ method:'POST',
+ headers:{'Authorization':'Bearer '+TOK()},
+ body:fd
+ });
+ clearInterval(S.stimer);
+ var data=await r.json();
+ if(!r.ok||data.error){
+ toast(data.error||'Server error.','err',8000);
+ resetGen(); return;
+ }
+ setStep(5); await SLEEP(400);
+ S.script=data.script; S.audio64=data.audio;
+ S.shareId=data.share_id; S.podId=data.podcast_id;
+ var rsp1=data.speaker1||S.sp1;
+ var rsp2=data.speaker2||S.sp2;
+ renderScript(data.script,'sout',rsp1,rsp2);
+ setAudio(data.audio,'ael');
+ drawWave(data.audio);
+ var lb=document.getElementById('lang-badge');
+ if(lb) lb.textContent=lang!=='en'?'🌍 '+((S.langs&&S.langs[lang])||lang):'';
+ document.getElementById('pcard').style.display='none';
+ document.getElementById('rcard').style.display='block';
+ document.getElementById('rcard').scrollIntoView({behavior:'smooth'});
+ toast('Podcast ready!','ok');
+ await fetchHist();
+ }catch(e){
+ clearInterval(S.stimer);
+ toast('Request failed: '+e.message,'err');
+ resetGen();
+ }
+ S.gen=false;
+ document.getElementById('gbtn').disabled=false;
+ document.getElementById('gbtn-ico').textContent='✦';
+ document.getElementById('gbtn-txt').textContent='Generate podcast';
+}
+
+function resetGen(){
+ S.gen=false; clearInterval(S.stimer);
+ document.getElementById('pcard').style.display='none';
+ document.getElementById('gbtn').disabled=false;
+ document.getElementById('gbtn-ico').textContent='✦';
+ document.getElementById('gbtn-txt').textContent='Generate podcast';
+}
+
+/* ── RENDER SCRIPT ── */
+function renderScript(script, targetId, sp1, sp2){
+ var box=document.getElementById(targetId); if(!box) return;
+ box.innerHTML='';
+ var s1l=(sp1||'alex').toLowerCase();
+ var s2l=(sp2||'jordan').toLowerCase();
+ script.split('\n').forEach(function(line){
+ if(!line.trim()) return;
+ var d=document.createElement('div'); d.className='sl';
+ var lo=line.toLowerCase();
+ var isS1=lo.startsWith(s1l+':');
+ var isS2=lo.startsWith(s2l+':');
+ if(isS1||isS2){
+ var cls=isS1?'spk1':'spk2';
+ var i=line.indexOf(':');
+ d.innerHTML='<span class="'+cls+'">'+esc(line.slice(0,i))+'</span>'+esc(line.slice(i));
+ } else { d.textContent=line; }
+ box.appendChild(d);
+ });
+}
+
+/* ── AUDIO ── */
+function setAudio(b64,id){
+ var bytes=Uint8Array.from(atob(b64),function(c){return c.charCodeAt(0);});
+ document.getElementById(id).src=URL.createObjectURL(new Blob([bytes],{type:'audio/wav'}));
+}
+
+function drawWave(b64){
+ requestAnimationFrame(function(){
+ var cv=document.getElementById('wv'); if(!cv) return;
+ var displayW=cv.offsetWidth||600;
+ cv.width=displayW*window.devicePixelRatio;
+ cv.height=52*window.devicePixelRatio;
+ cv.style.width=displayW+'px';
+ cv.style.height='52px';
+ var ctx=cv.getContext('2d');
+ ctx.scale(window.devicePixelRatio,window.devicePixelRatio);
+ var samples;
+ try{
+ var bytes=Uint8Array.from(atob(b64),function(c){return c.charCodeAt(0);});
+ samples=new Int16Array(bytes.buffer.slice(44));
+ }catch(_){return;}
+ var W=displayW, H=52;
+ ctx.clearRect(0,0,W,H);
+ var dark=document.documentElement.getAttribute('data-theme')==='dark';
+ ctx.strokeStyle=dark?'#3b82f6':'#1a6ef5'; ctx.lineWidth=1.5;
+ var step=Math.max(1,Math.ceil(samples.length/W));
+ for(var side=0;side<2;side++){
+ ctx.beginPath();
+ for(var x=0;x<W;x++){
+ var mx=0;
+ for(var j=0;j<step;j++){var v=Math.abs(samples[x*step+j]||0)/32768;if(v>mx)mx=v;}
+ var y=side===0?(H/2)-(mx*H/2.2):(H/2)+(mx*H/2.2);
+ if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+ }
+ ctx.stroke();
+ }
+ });
+}
+
+/* ── TABS ── */
+function rtab(name,el){
+ el.parentElement.querySelectorAll('.rtab').forEach(function(t){t.classList.remove('on');});
+ el.classList.add('on');
+ document.getElementById('pn-s').classList.toggle('on',name==='script');
+ document.getElementById('pn-a').classList.toggle('on',name==='audio');
+}
+function stab(name,el){
+ el.parentElement.querySelectorAll('.rtab').forEach(function(t){t.classList.remove('on');});
+ el.classList.add('on');
+ document.getElementById('spn-s').classList.toggle('on',name==='s');
+ document.getElementById('spn-a').classList.toggle('on',name==='a');
+}
+
+/* ── DOWNLOAD ── */
+function dlAudio(){
+ if(!S.audio64) return;
+ var a=document.createElement('a');
+ a.href=URL.createObjectURL(new Blob([Uint8Array.from(atob(S.audio64),function(c){return c.charCodeAt(0);})],{type:'audio/wav'}));
+ a.download='podcast.wav'; a.click(); toast('Downloading WAV…','inf',2000);
+}
+function dlScript(){
+ if(!S.script) return;
+ var a=document.createElement('a');
+ a.href=URL.createObjectURL(new Blob([S.script],{type:'text/plain'}));
+ a.download='script.txt'; a.click(); toast('Downloading script…','inf',2000);
+}
+
+/* ── SHARE ── */
+function openShare(){
+ if(!S.shareId) return;
+ var url=location.origin+location.pathname+'#/share/'+S.shareId;
+ document.getElementById('shurl').value=url;
+ document.getElementById('shmod').style.display='flex';
+}
+function copyShare(){
+ var inp=document.getElementById('shurl'); inp.select();
+ if(navigator.clipboard) navigator.clipboard.writeText(inp.value).catch(function(){document.execCommand('copy');});
+ else document.execCommand('copy');
+ toast('Link copied!','ok',2000);
+}
+function closeMod(e,id){
+ if(!e||e.target.classList.contains('ov'))
+ document.getElementById(id).style.display='none';
+}
+async function loadSharePg(shareId){
+ go('share');
+ try{
+ var r=await fetch(API()+'/api/share/'+shareId);
+ var d=await r.json();
+ if(!r.ok){document.getElementById('sptitle').textContent='Not found';return;}
+ document.getElementById('sptitle').textContent=d.title||d.filename;
+ document.getElementById('spmeta').textContent='Generated '+fmt(d.created_at);
+ renderScript(d.script,'spscript',d.speaker1||'Alex',d.speaker2||'Jordan');
+ if(d.audio) setAudio(d.audio,'spaud');
+ }catch(e){document.getElementById('sptitle').textContent='Could not load';}
+}
+
+/* ── HISTORY ── */
+async function fetchHist(){
+ if(!S.user) return;
+ try{
+ var r=await fetch(API()+'/api/podcasts',{headers:{'Authorization':'Bearer '+TOK()}});
+ var d=await r.json();
+ if(r.ok){S.hist=d.podcasts;renderHist();}
+ }catch(_){}
+}
+function renderHist(){
+ var list=document.getElementById('hlist');
+ var q=S.search.toLowerCase();
+ var items=S.hist.filter(function(h){return !q||(h.title||h.filename||'').toLowerCase().indexOf(q)!==-1;});
+ document.getElementById('hcnt').textContent=S.hist.length;
+ if(!items.length){
+ list.innerHTML='<div class="sbempty">'+(q?'No results':'No podcasts yet.<br/>Generate your first!')+'</div>';
+ return;
+ }
+ list.innerHTML=items.map(function(h){
+ return '<div class="hi" onclick="loadHist(\''+h.podcast_id+'\')">'
+ +'<span class="hi-ico">🎙</span>'
+ +'<div class="hi-info">'
+ +'<div class="hi-name" title="'+esc(h.title||h.filename)+'">'+esc(h.title||h.filename)+'</div>'
+ +'<div class="hi-date">'+fmt(h.created_at)+(h.language&&h.language!=='en'?' · '+h.language:'')+'</div>'
+ +'</div>'
+ +'<button class="hi-ren" onclick="openRen(event,\''+h.podcast_id+'\',\''+esc(h.title||h.filename)+'\')" title="Rename">✎</button>'
+ +'<button class="hi-del" onclick="delHist(event,\''+h.podcast_id+'\')" title="Delete">✕</button>'
+ +'</div>';
+ }).join('');
+}
+
+async function loadHist(id){
+ if(!S.user) return;
+ try{
+ var r=await fetch(API()+'/api/podcasts/'+id,{headers:{'Authorization':'Bearer '+TOK()}});
+ var d=await r.json();
+ if(!r.ok){toast('Could not load.','err');return;}
+ var p=d.podcast;
+ S.script=p.script; S.audio64=p.audio; S.shareId=p.share_id; S.podId=p.podcast_id;
+ var sp1=p.speaker1||'Alex';
+ var sp2=p.speaker2||'Jordan';
+ renderScript(p.script,'sout',sp1,sp2);
+ setAudio(p.audio,'ael');
+ drawWave(p.audio);
+ var lb=document.getElementById('lang-badge');
+ if(lb) lb.textContent=p.language&&p.language!=='en'?'🌍 '+(S.langs[p.language]||p.language):'';
+ document.getElementById('rcard').style.display='block';
+ document.getElementById('pcard').style.display='none';
+ toast('Loaded: '+esc(p.title||p.filename),'inf',2500);
+ if(window.innerWidth<=700) toggleSb();
+ }catch(e){toast('Failed to load.','err');}
+}
+
+async function delHist(e,id){
+ e.stopPropagation();
+ if(!confirm('Delete this podcast?')) return;
+ try{
+ await fetch(API()+'/api/podcasts/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+TOK()}});
+ S.hist=S.hist.filter(function(h){return h.podcast_id!==id;});
+ renderHist(); toast('Deleted.','inf',2000);
+ }catch(_){toast('Failed to delete.','err');}
+}
+function openRen(e,id,cur){
+ e.stopPropagation(); S.renId=id;
+ document.getElementById('reninp').value=cur;
+ document.getElementById('renmod').style.display='flex';
+ setTimeout(function(){document.getElementById('reninp').focus();},50);
+}
+async function doRename(){
+ var t=document.getElementById('reninp').value.trim();
+ if(!t){toast('Title required.','err');return;}
+ try{
+ await fetch(API()+'/api/podcasts/'+S.renId+'/rename',{
+ method:'PATCH',
+ headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOK()},
+ body:JSON.stringify({title:t})
+ });
+ var p=S.hist.find(function(h){return h.podcast_id===S.renId;});
+ if(p) p.title=t;
+ renderHist(); closeMod(null,'renmod'); toast('Renamed.','ok',2000);
+ }catch(_){toast('Failed.','err');}
+}
+function filterH(q){S.search=q;renderHist();}
+function newSess(){
+ S.file=null; S.audio64=null; S.script=null; S.shareId=null;
+ document.getElementById('finp').value='';
+ document.getElementById('fpill').style.display='none';
+ document.getElementById('gbtn').disabled=true;
+ document.getElementById('rcard').style.display='none';
+ document.getElementById('pcard').style.display='none';
+ document.getElementById('vpbar').style.display='none';
+ document.getElementById('same-voice').checked=false;
+ var v2=document.getElementById('voice2');
+ if(v2){v2.disabled=false;}
+ var p2=document.getElementById('prev2');
+ if(p2){p2.disabled=!S.voices.length;}
+ if(window.innerWidth<=700) toggleSb();
+}
+
+/* ── CONTACT ── */
+function sendContact(){
+ var n=document.getElementById('cn').value.trim();
+ var e=document.getElementById('ce').value.trim();
+ var m=document.getElementById('cm').value.trim();
+ if(!n||!e||!m){toast('Please fill all fields.','err');return;}
+ if(!isEmail(e)){toast('Valid email required.','err');return;}
+ toast("Message sent! We'll be in touch.",'ok');
+ ['cn','ce','cm'].forEach(function(id){document.getElementById(id).value='';});
+}
+function faq(el){el.closest('.faq').classList.toggle('op');}
+function toggleSb(){
+ document.getElementById('sidebar').classList.toggle('op');
+ document.getElementById('sbbkdrop').classList.toggle('on');
+}
+
+/* ── UTILS ── */
+function fmt(iso){
+ if(!iso) return '';
+ var d=new Date(iso),now=new Date(),diff=(now-d)/1000;
+ if(diff<60) return 'just now';
+ if(diff<3600) return Math.floor(diff/60)+'m ago';
+ if(diff<86400) return Math.floor(diff/3600)+'h ago';
+ return d.toLocaleDateString();
+}
+function esc(s){
+ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── INIT ── */
+updateAuth();
+checkHash();
+if(S.user) fetchHist();
+</script>
+</body>
+</html>
